@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Comic Reader — Coral Bright</title>
+  <style>
+    :root{
+      --bg: #fffaf8;
+      --panel: #ffffff;
+      --muted: #6b7280;
+      --accent: #ff6b6b; /* coral-ish */
+      --accent-2: #ffb4a2;
+      --glass: rgba(255,255,255,0.6);
+      --radius:14px;
+      --text: #0f1724;
+      --card-shadow: 0 10px 30px rgba(15,23,36,0.06);
+    }
+    /* dark theme (soft dark gray + coral accent) */
+    body.dark{
+      --bg: #0f1724;
+      --panel: rgba(255,255,255,0.03);
+      --muted: #94a3b8;
+      --accent: #ff7b7b;
+      --accent-2: #a78bfa;
+      --glass: rgba(255,255,255,0.04);
+      --text: #e6eef8;
+      --card-shadow: 0 14px 40px rgba(2,6,23,0.6);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(135deg, #fff7f5 0%, #fffbf0 40%, #fffaf8 100%);
+      padding:28px;
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      display:flex;align-items:center;justify-content:center;
+      transition: background .25s ease, color .25s ease;
+    }
+
+    body.dark{
+      background: radial-gradient(800px 400px at 10% 10%, rgba(168,85,247,0.03), transparent),
+                  radial-gradient(600px 300px at 90% 90%, rgba(96,165,250,0.02), transparent),
+                  #0b1220;
+    }
+
+    .shell{
+      width:100%;max-width:1100px;border-radius:18px;padding:20px;
+      background: linear-gradient(180deg, var(--panel), rgba(255,255,255,0.02));
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(15,23,36,0.04);
+      backdrop-filter: blur(6px) saturate(120%);
+    }
+
+    header.appbar{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:20px}
+    h1{margin:0;font-size:18px}
+    p.tag{margin:0;color:var(--muted);font-size:13px}
+
+    .controls{display:flex;gap:10px;align-items:center}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:transparent;color:inherit;border:1px solid rgba(15,23,36,0.06);padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700;transition:transform .12s ease, box-shadow .12s ease}
+    .btn:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(15,23,36,0.06)}
+    .primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white;border:none}
+    .small{padding:6px 10px;font-size:13px;border-radius:8px}
+
+    .main{display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start}
+    .panel{background:var(--panel);border-radius:14px;padding:14px;min-height:440px;border:1px solid rgba(15,23,36,0.04)}
+    .drop{border-radius:12px;padding:16px;text-align:center;border:2px dashed rgba(15,23,36,0.04);transition:all .15s;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent)}
+    .drop.drag{transform:translateY(-6px);border-color:rgba(255,107,107,0.28);box-shadow:0 14px 30px rgba(255,107,107,0.06)}
+
+    .upload-actions{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+    .file-list{margin-top:14px;display:flex;flex-direction:column;gap:10px;max-height:260px;overflow:auto;padding-right:6px}
+    .file-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border:1px solid rgba(15,23,36,0.03)}
+    .thumb{width:46px;height:60px;border-radius:6px;object-fit:cover;background:#000;color:#fff;flex-shrink:0}
+    .meta strong{display:block;font-size:14px}
+    .meta span{display:block;font-size:12px;color:var(--muted)}
+
+    .lang-select{display:flex;gap:8px;align-items:center}
+    .lang-select label{font-weight:800}
+    select{padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(15,23,36,0.05);color:inherit;font-weight:700}
+
+    .switch-row{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-top:12px}
+    .switch{display:inline-flex;align-items:center;gap:8px;background:transparent;border-radius:999px;padding:6px 8px;border:1px solid rgba(15,23,36,0.03)}
+
+    .reader{background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border-radius:14px;min-height:520px;padding:12px;border:1px solid rgba(15,23,36,0.04);display:flex;flex-direction:column}
+    .viewer{flex:1;display:flex;align-items:center;justify-content:center;position:relative;border-radius:10px;overflow:hidden;background:linear-gradient(180deg, rgba(0,0,0,0.02), transparent);outline:1px dashed rgba(15,23,36,0.03)}
+    .viewer img, .viewer iframe{max-width:100%;max-height:76vh;display:block;border-radius:8px;box-shadow:0 8px 30px rgba(15,23,36,0.06)}
+    .placeholder{color:var(--muted);text-align:center;padding:30px}
+
+    .fab-nav{position:absolute;right:18px;bottom:18px;display:flex;flex-direction:column;gap:10px;z-index:40}
+    .fab{width:54px;height:54px;border-radius:999px;display:inline-grid;place-items:center;background:rgba(255,255,255,0.06);backdrop-filter:blur(6px);cursor:pointer;border:1px solid rgba(15,23,36,0.04)}
+    .fab.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white;border:none;box-shadow:0 8px 30px rgba(255,107,107,0.15)}
+    .page-indicator{position:absolute;left:18px;top:18px;background:linear-gradient(90deg, rgba(0,0,0,0.18), rgba(0,0,0,0.12));padding:8px 12px;border-radius:999px;color:white;font-weight:700}
+
+    .controls-bar{display:flex;align-items:center;gap:12px;padding-top:12px;justify-content:space-between}
+    .zoom{display:flex;align-items:center;gap:8px}
+    input[type=range]{appearance:none;width:160px;height:6px;border-radius:999px;background:linear-gradient(90deg,#ffd6cc, rgba(255,255,255,0.06));outline:none}
+    input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:999px;background:white;box-shadow:0 2px 6px rgba(2,6,23,0.12)}
+
+    footer.note{margin-top:12px;color:var(--muted);font-size:13px;text-align:center}
+
+    @media (max-width:980px){
+      .main{grid-template-columns:1fr}
+      .panel{order:2}
+      .reader{order:1;margin-bottom:12px}
+      .fab-nav{right:12px;bottom:12px;flex-direction:row}
+      .page-indicator{left:12px;top:auto;bottom:12px}
+    }
+  
+/* Loading overlay for Translate to Speech */
+#loadingOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+#loadingOverlay .spinner {
+  border: 5px solid rgba(255,255,255,0.2);
+  border-top: 5px solid var(--accent);
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+#loadingOverlay p {
+  color: white;
+  margin-top: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+</style>
+</head>
+<body>
+  <div class="shell" role="application" aria-label="Comic Reader">
+    <header class="appbar">
+      <div class="brand">
+        <div class="logo">CR</div>
+        <div>
+          <h1>Comic Reader</h1>
+          <p class="tag">Bright minimalist — coral accents. Upload images or PDFs and read page-by-page.</p>
+        </div>
+      </div>
+
+      <div class="controls" role="group" aria-label="Top controls">
+        <button class="btn small" id="themeToggle" title="Toggle theme (Light / Dark)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Theme
+        </button>
+
+        <div class="btn small lang-select" title="Choose translation language">
+          <label for="lang" style="font-weight:700;font-size:13px;margin-right:6px">Language</label>
+          <select id="lang">
+            <option value="en" selected>English</option>
+            <option value="nl">Dutch</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <div class="main">
+      <aside class="panel" aria-label="Files & options">
+        <div id="dropArea" class="drop" tabindex="0" aria-describedby="dropHint">
+          <p id="dropHint">Drag & drop images or a PDF here, or click to choose files (you can add pages in multiple steps)</p>
+          <div class="upload-actions">
+            <button class="btn" id="selectBtn">Upload Files</button>
+          </div>
+<div class="upload-secondary-actions" style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
+</div>
+          <input id="fileInput" type="file" accept="application/pdf,image/png,image/jpeg" multiple style="display:none" />
+        </div>
+
+        <div class="file-list" id="fileList" aria-live="polite"></div>
+
+        <div class="switch-row">
+          <div class="switch"><label style="font-weight:700;font-size:13px">Fit</label><span class="status" id="fitMode">Contain</span></div>
+          <div class="switch"><label style="font-weight:700;font-size:13px">Pages</label><span class="status" id="pageCount">0</span></div>
+        </div>
+        <div style="height:10px"></div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button class="btn small" id="prevBtn" aria-label="Previous page">Previous</button>
+          <button class="btn small" id="nextBtn" aria-label="Next page">Next</button>
+        </div>
+        <div style="margin-top:16px;display:flex;justify-content:center;">
+          <button class="btn small primary" id="ttsBtn" title="Translate comic to speech">
+            Translate to Speech
+          </button>
+        </div>
+      </aside>
+
+      <section class="reader" aria-label="Reader">
+        <div class="viewer" id="viewer" tabindex="0">
+          <div class="placeholder" id="placeholder">
+            <p style="font-size:16px">No files loaded — drop files or click <strong>Choose Files</strong></p>
+            <p style="font-size:13px;color:var(--muted)">Supports multi-page PDF and image sequences (PNG/JPEG). You can add pages incrementally — click Choose Files again to append more pages.</p>
+          </div>
+        </div>
+
+        <div class="controls-bar" style="justify-content:center;flex-direction:column;text-align:center;margin-top:10px;">
+          <div class="zoom">
+            <button class="btn small" id="fitBtn" title="Toggle fit/contain">Toggle Fit</button>
+            <label for="zoom" style="font-weight:700">Zoom</label>
+            <input id="zoom" type="range" min="25" max="200" value="100" aria-label="Zoom slider" />
+            <span class="status" id="zoomPct">100%</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="status" id="pageInfo" aria-live="polite">Page 0 / 0</div>
+            
+          </div>
+        </div>
+
+        <div class="fab-nav" role="navigation" aria-label="Page navigation">
+          <div class="page-indicator" id="pageIndicator" aria-hidden>0 / 0</div>
+          <button class="fab" id="thumbPrev" title="Previous"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="fab primary" id="thumbNext" title="Next"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+
+        </section>
+    </div>
+  </div>
+
+<script>
+// Elements
+const fileInput = document.getElementById('fileInput');
+const selectBtn = document.getElementById('selectBtn');
+const dropArea = document.getElementById('dropArea');
+const fileList = document.getElementById('fileList');
+const viewer = document.getElementById('viewer');
+const placeholder = document.getElementById('placeholder');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const thumbPrev = document.getElementById('thumbPrev');
+const thumbNext = document.getElementById('thumbNext');
+const pageInfo = document.getElementById('pageInfo');
+const pageIndicator = document.getElementById('pageIndicator');
+const pageCountEl = document.getElementById('pageCount');
+const zoomInput = document.getElementById('zoom');
+const zoomPct = document.getElementById('zoomPct');
+const fitBtn = document.getElementById('fitBtn');
+const fitModeEl = document.getElementById('fitMode');
+const translateBtn = document.getElementById('translateBtn');
+const clearBtn = document.getElementById('clearBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const downloadPage = document.getElementById('downloadPage');
+const rotateBtn = document.getElementById('rotateBtn');
+const langSelect = document.getElementById('lang');
+const themeToggle = document.getElementById('themeToggle');
+
+// State
+let files = []; // array of File objects
+let currentIndex = 0;
+let fitMode = 'contain';
+let rotation = 0;
+
+// Utilities
+const bytesToKB = n => (n/1024).toFixed(1) + ' KB';
+function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+
+// THEME: persist and toggle (soft dark gray + coral accent)
+function applySavedTheme(){
+  const saved = localStorage.getItem('comic_theme');
+  if(saved === 'dark') document.body.classList.add('dark');
+  else document.body.classList.remove('dark');
+}
+applySavedTheme();
+themeToggle.addEventListener('click', ()=>{
+  document.body.classList.toggle('dark');
+  localStorage.setItem('comic_theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+});
+
+// FILE HANDLING: append files when choosing more
+selectBtn.addEventListener('click', ()=> fileInput.click());
+dropArea.addEventListener('click', ()=> fileInput.click());
+
+fileInput.addEventListener('change', (e)=>{
+  const chosen = Array.from(e.target.files || []);
+  appendFiles(chosen);
+  fileInput.value = ''; // allow re-selecting same files later
+});
+
+function appendFiles(list){
+  if(!list.length) return;
+  const valid = list.filter(f=> f.type === 'application/pdf' || f.type.startsWith('image/'));
+  if(!valid.length){ alert('Please upload PDF or images (PNG/JPEG).'); return; }
+  // append to existing files
+  files = files.concat(valid);
+  // keep order stable; optionally dedupe by name+size
+  files = dedupeFiles(files);
+  currentIndex = files.length - valid.length; // show the first of newly added (preserve previous pages)
+  rotation = 0;
+  updateFileList();
+  showFile(currentIndex);
+  // enable translate button (placeholder)
+  translateBtn.classList.add('primary');
+}
+
+function dedupeFiles(arr){
+  const seen = new Set();
+  const out = [];
+  for(const f of arr){
+    const id = f.name + '|' + f.size + '|' + f.lastModified;
+    if(!seen.has(id)){ seen.add(id); out.push(f); }
+  }
+  return out;
+}
+
+// drag & drop support (append)
+;['dragenter','dragover'].forEach(ev=>{
+  dropArea.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); dropArea.classList.add('drag'); });
+});
+;['dragleave','drop'].forEach(ev=>{
+  dropArea.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('drag'); });
+});
+dropArea.addEventListener('drop', e=>{
+  const dt = e.dataTransfer; if(!dt) return;
+  const list = Array.from(dt.files || []);
+  appendFiles(list);
+});
+
+// update file list UI
+function updateFileList(){
+  fileList.innerHTML = '';
+  files.forEach((f,i)=>{
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.innerHTML = `
+      <img class="thumb" src="" alt="" />
+      <div class="meta"><strong>${escapeHtml(f.name)}</strong><span>${bytesToKB(f.size)}</span></div>
+      <div class="actions" style="display:flex;gap:8px">
+        <button class="btn small" data-index="${i}" title="Show">Show</button>
+        <button class="btn small" data-index="${i}" title="Remove">Remove</button>
+      </div>
+    `;
+    const thumb = item.querySelector('.thumb');
+    const [showBtn, removeBtn] = item.querySelectorAll('button');
+    showBtn.addEventListener('click', ()=> showFile(parseInt(showBtn.dataset.index)));
+    removeBtn.addEventListener('click', ()=> removeFile(parseInt(removeBtn.dataset.index)));
+
+    if(f.type && f.type.startsWith('image/')){
+      const url = URL.createObjectURL(f);
+      thumb.src = url;
+      thumb.onload = ()=> URL.revokeObjectURL(url);
+    } else {
+      thumb.style.display='flex'; thumb.style.alignItems='center'; thumb.style.justifyContent='center';
+      thumb.style.background='linear-gradient(90deg,var(--accent),var(--accent-2))'; thumb.style.color='#fff'; thumb.textContent='PDF';
+    }
+    fileList.appendChild(item);
+  });
+
+  pageCountEl.textContent = files.length;
+  pageInfo.textContent = `Page ${files.length?currentIndex+1:0} / ${files.length}`;
+  pageIndicator.textContent = `${files.length?currentIndex+1:0} / ${files.length}`;
+  updateNavState();
+}
+
+function removeFile(index){
+  if(index<0 || index>=files.length) return;
+  files.splice(index,1);
+  if(currentIndex >= files.length) currentIndex = Math.max(0, files.length-1);
+  updateFileList();
+  if(files.length) showFile(currentIndex);
+  else { clearViewer(); updateFileList(); }
+}
+
+// viewer logic
+function clearViewer(){ viewer.querySelectorAll('img, iframe, canvas').forEach(n=>n.remove()); if(placeholder) placeholder.style.display=''; }
+function showFile(index){
+  if(index<0 || index>=files.length) return;
+  currentIndex = index;
+  clearViewer();
+  const f = files[index];
+  placeholder.style.display = 'none';
+  const url = URL.createObjectURL(f);
+
+  if(f.type === 'application/pdf'){
+    const iframe = document.createElement('iframe');
+    iframe.src = url;
+    iframe.style.width='100%'; iframe.style.height='100%'; iframe.setAttribute('aria-label','PDF preview');
+    viewer.appendChild(iframe);
+  } else {
+    const img = document.createElement('img');
+    img.src = url; img.alt = `Page ${index+1}`; img.style.maxWidth='100%'; img.style.maxHeight='76vh';
+    applyTransform(img);
+    img.onload = ()=> URL.revokeObjectURL(url);
+    viewer.appendChild(img);
+  }
+  updateFileList();
+  updateNavState();
+}
+
+// navigation
+prevBtn.addEventListener('click', ()=> showFile(currentIndex-1));
+nextBtn.addEventListener('click', ()=> showFile(currentIndex+1));
+thumbPrev.addEventListener('click', ()=> showFile(currentIndex-1));
+thumbNext.addEventListener('click', ()=> showFile(currentIndex+1));
+
+document.addEventListener('keydown', e=>{
+  if(e.key === 'ArrowLeft') showFile(currentIndex-1);
+  if(e.key === 'ArrowRight') showFile(currentIndex+1);
+});
+
+// zoom & fit
+zoomInput.addEventListener('input', ()=>{
+  const v = zoomInput.value; zoomPct.textContent = v + '%';
+  const el = viewer.querySelector('img'); if(el) applyTransform(el);
+});
+fitBtn.addEventListener('click', ()=>{
+  fitMode = fitMode === 'contain' ? 'cover' : 'contain';
+  fitModeEl.textContent = fitMode === 'contain' ? 'Contain' : 'Cover';
+  const el = viewer.querySelector('img'); if(el) applyTransform(el);
+});
+function applyTransform(el){
+  const zoom = zoomInput.value/100;
+  el.style.objectFit = fitMode === 'contain' ? 'contain' : 'cover';
+  el.style.width = fitMode === 'contain' ? (zoom*100) + '%' : '100%';
+  el.style.height = 'auto';
+  el.style.transform = `rotate(${rotation}deg)`;
+}
+
+// translate placeholder
+translateBtn.addEventListener('click', ()=>{
+  if(!files.length) return alert('Load a file first.');
+  const lang = langSelect.value.toUpperCase();
+  alert(`This will extract text (OCR) from page ${currentIndex+1} and translate to ${lang} — feature coming soon.`);
+});
+
+// clear all
+clearBtn.addEventListener('click', ()=>{
+  if(!files.length) return;
+  if(!confirm('Clear all loaded pages?')) return;
+  files = []; currentIndex = 0; rotation = 0; fileInput.value=''; updateFileList(); clearViewer();
+});
+
+// download current file (original)
+downloadBtn.addEventListener('click', ()=>{
+  if(!files.length) return alert('No files to export.');
+  const f = files[currentIndex];
+  const url = URL.createObjectURL(f);
+  const a = document.createElement('a'); a.href = url; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+// download current rendered page as PNG (images only)
+downloadPage.addEventListener('click', ()=>{
+  const img = viewer.querySelector('img'); if(!img) return alert('Current page is not an image or not loaded.');
+  const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; const ctx = canvas.getContext('2d');
+  // handle rotation for right angles
+  if(rotation % 360 !== 0){
+    const r = (rotation % 360 + 360) % 360;
+    if(r === 90){
+      canvas.width = img.naturalHeight; canvas.height = img.naturalWidth; ctx.translate(canvas.width/2, canvas.height/2); ctx.rotate(Math.PI/2); ctx.drawImage(img, -img.naturalWidth/2, -img.naturalHeight/2);
+    } else if(r === 180){
+      ctx.translate(canvas.width/2, canvas.height/2); ctx.rotate(Math.PI); ctx.drawImage(img, -img.naturalWidth/2, -img.naturalHeight/2);
+    } else if(r === 270){
+      canvas.width = img.naturalHeight; canvas.height = img.naturalWidth; ctx.translate(canvas.width/2, canvas.height/2); ctx.rotate(3*Math.PI/2); ctx.drawImage(img, -img.naturalWidth/2, -img.naturalHeight/2);
+    } else {
+      ctx.drawImage(img,0,0);
+    }
+  } else {
+    ctx.drawImage(img,0,0);
+  }
+  canvas.toBlob(blob=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download = `page-${currentIndex+1}.png`; document.body.appendChild(a); a.click(); a.remove(); }, 'image/png');
+});
+
+// rotate
+rotateBtn.addEventListener('click', ()=>{ rotation = (rotation + 90) % 360; const el = viewer.querySelector('img'); if(el) applyTransform(el); });
+
+// remove helper when removing same file indexes after deletion (rebind)
+function updateNavState(){
+  prevBtn.disabled = currentIndex === 0;
+  nextBtn.disabled = currentIndex >= files.length-1;
+  thumbPrev.disabled = prevBtn.disabled;
+  thumbNext.disabled = nextBtn.disabled;
+  pageInfo.textContent = `Page ${files.length?currentIndex+1:0} / ${files.length}`;
+  pageIndicator.textContent = `${files.length?currentIndex+1:0} / ${files.length}`;
+}
+
+// accessibility: pressing Enter on dropArea opens file picker
+dropArea.addEventListener('keydown', e=>{ if(e.key==='Enter') fileInput.click(); });
+
+// init
+updateFileList();
+
+
+// TRANSLATE TO SPEECH (mock)
+const ttsBtn = document.getElementById('ttsBtn');
+const loadingOverlay = document.getElementById('loadingOverlay');
+
+ttsBtn.addEventListener('click', ()=> {
+  if(!files.length) return alert('Please upload a file first.');
+  loadingOverlay.style.display = 'flex';
+  setTimeout(()=>{
+    loadingOverlay.style.display = 'none';
+    alert('Speech translation complete! (Simulated)');
+  }, 3000); // simulate loading for 3 seconds
+});
+
+</script>
+
+<div id="loadingOverlay">
+  <div style="display:flex;flex-direction:column;align-items:center;">
+    <div class="spinner"></div>
+    <p>Generating speech...</p>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,139 @@
+# This docker-compose setup simulates 3 separate servers
+# Each service runs in its own container with a separate network address
+
+services:
+  # ===== SERVER 1: Orchestrator (Redis) =====
+  redis:
+    image: redis:7-alpine
+    container_name: comic_redis_orchestrator
+    ports:
+      - "6379:6379"
+    networks:
+      comic_network:
+        ipv4_address: 172.25.0.10
+    command: redis-server --bind 0.0.0.0 --protected-mode no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ===== SERVER 2: Interface Server =====
+  interface:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.interface
+    container_name: comic_interface_server
+    ports:
+      - "5001:5001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_HOST=172.25.0.10  # Redis container IP
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - USE_LLM_NARRATOR=${USE_LLM_NARRATOR:-true}
+    networks:
+      comic_network:
+        ipv4_address: 172.25.0.20
+    volumes:
+      - ../audio_files:/app/audio_files
+      - ../temp_images:/app/temp_images
+
+  # ===== SERVER 3: AI Worker (Instance 1) =====
+  worker1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    container_name: comic_ai_worker_1
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_HOST=172.25.0.10  # Redis container IP
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - USE_LLM_NARRATOR=${USE_LLM_NARRATOR:-true}
+    networks:
+      comic_network:
+        ipv4_address: 172.25.0.30
+    volumes:
+      - ../credentials.json:/app/credentials.json:ro
+      - ../audio_files:/app/audio_files
+      - ../temp_images:/app/temp_images
+
+  # ===== OPTIONAL: Additional AI Worker (Instance 2) =====
+  worker2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    container_name: comic_ai_worker_2
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_HOST=172.25.0.10  # Redis container IP
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - USE_LLM_NARRATOR=${USE_LLM_NARRATOR:-true}
+    networks:
+      comic_network:
+        ipv4_address: 172.25.0.31
+    volumes:
+      - ../credentials.json:/app/credentials.json:ro
+      - ../audio_files:/app/audio_files
+      - ../temp_images:/app/temp_images
+
+  # ===== OPTIONAL: Additional AI Worker (Instance 3) =====
+  worker3:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    container_name: comic_ai_worker_3
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_HOST=172.25.0.10  # Redis container IP
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - USE_LLM_NARRATOR=${USE_LLM_NARRATOR:-true}
+    networks:
+      comic_network:
+        ipv4_address: 172.25.0.32
+    volumes:
+      - ../credentials.json:/app/credentials.json:ro
+      - ../audio_files:/app/audio_files
+      - ../temp_images:/app/temp_images
+
+networks:
+  comic_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+# Each container has its own IP address on a private network:
+# - Redis (Orchestrator):  172.25.0.10:6379
+# - Interface Server:      172.25.0.20:5001
+# - AI Worker 1:           172.25.0.30
+# - AI Worker 2:           172.25.0.31
+# - AI Worker 3:           172.25.0.32
+#
+# This simulates a distributed deployment on separate servers.

@@ -1,0 +1,28 @@
+# Core web framework
+Flask==3.0.0
+flask-cors==4.0.0
+
+# Google Cloud APIs (OCR and TTS)
+google-cloud-vision==3.4.5
+google-cloud-texttospeech==2.14.1
+
+# OpenAI API (LLM-based narration) - use latest for best compatibility
+openai
+
+# Image processing
+opencv-python==4.8.1.78
+numpy==1.24.3
+Pillow==10.1.0
+
+# Queue and task management (DISTRIBUTED ARCHITECTURE)
+redis==5.0.1
+rq==1.15.1
+
+# Additional utilities
+python-dotenv==1.0.0
+
+# Translation dependencies (English to Dutch)
+OpenNMT-py==3.5.1
+pyonmttok>=1.37.0
+sentencepiece==0.1.99
+torch>=2.0.0

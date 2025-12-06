@@ -205,3 +205,68 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Mac
+*.DS_Store
+credentials.json
+
+# Python cache
+*__pycache__/
+*.pyc
+
+# Environment
+.env
+.cursor
+.venv
+
+# Database
+*.db
+
+# MLflow
+mlruns/
+
+# Pytest
+.pytest_cache/
+
+# LaTeX auxiliary files
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.out
+*.nav
+*.snm
+*.vrb
+
+# Translation Model (1GB+ files)
+model/
+!model/*.py
+model_step_*.pt
+*.pt
+
+# Temporary files
+temp_images/*.png
+temp_images/*.jpg
+temp_images/*.jpeg
+audio_files/*.mp3
+audio_files/*.wav
+data/*
+!data/.gitkeep
+
+# Keep directories but ignore contents
+!temp_images/.gitkeep
+!audio_files/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# Docker volumes
+redis_data/
+
+Claude.md

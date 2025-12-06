@@ -1,0 +1,44 @@
+FROM python:3.11.9-bookworm
+
+WORKDIR /app
+
+# Install system dependencies and build tools (with retries for hash mismatches)
+RUN apt-get update && \
+    for i in 1 2 3; do \
+        apt-get install -y --no-install-recommends \
+        libglib2.0-0 \
+        libsm6 \
+        libxext6 \
+        libxrender1 \
+        libgomp1 \
+        libgl1 \
+        libglib2.0-0 \
+        gcc \
+        g++ \
+        make && break || sleep 5; \
+    done && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
+COPY workers/ ./workers/
+COPY narration/ ./narration/
+COPY translation/ ./translation/
+COPY config.py .
+COPY .env .
+
+# Copy model files (for translation)
+COPY model/ ./model/
+
+# Create directories
+RUN mkdir -p audio_files temp_images
+
+# Set PYTHONPATH to ensure tasks module can be imported
+ENV PYTHONPATH=/app:$PYTHONPATH
+
+# Run worker
+CMD ["python", "workers/worker.py"]
