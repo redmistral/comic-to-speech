@@ -1,6 +1,6 @@
 # Comic-to-Speech 🎭📚🔊
 
- Course Project for Software Engineering for AI by Selim Can Mutlu, Aleksandar Dimitrov, Tanzhu Veli, Daniel Pocatilu, Elias Schilie, and Timo van Kesteren. An AI-powered system that transforms comic pages into immersive audiobook-style.
+ Course Project for Software Engineering for AI by Selim Can Mutlu, Aleksandar Dimitrov, Tanzhu Veli, Daniel Pocatilu, Elias Schlie, and Timo van Kesteren. An AI-powered system that transforms comic pages into immersive audiobook-style.
 ## Features
 
 - **🎭 Cinematic Narration**: GPT-4 Vision creates audiobook-style narration with dialogue and scene descriptions.
@@ -209,5 +209,6 @@ uv run pytest tests/test_extreme_cases.py::test_ocr_with_actual_black_image -v
 
 ## License
 Educational purpose only.
+
 
 
